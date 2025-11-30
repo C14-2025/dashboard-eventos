@@ -16,14 +16,28 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         const response = await api.get('/events');
-        console.log(response.data)
         const events = response.data.data;
+
+        const totalTickets = events.reduce((acc, event) => {
+          return acc + event.tickets.length;
+        }, 0);
+
+        const checkedIn = events.reduce((acc, event) => {
+          return acc + event.tickets.filter(ticket => ticket.check).length;
+        }, 0);
+
+        // se cada ticket gera 1 * event.price
+        const revenue = events.reduce((acc, event) => {
+          return acc + event.tickets.length * event.price;
+        }, 0);
+
         setStats({
-          totalEvents: events.length || 0,
-          totalTickets: 0,
-          checkedIn: 0,
-          revenue: 0,
+          totalEvents: events.length,
+          totalTickets,
+          checkedIn,
+          revenue,
         });
+
       } catch (error) {
         console.error('Error fetching stats:', error);
       }
