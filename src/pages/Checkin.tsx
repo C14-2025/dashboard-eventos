@@ -24,18 +24,28 @@ const Checkin = () => {
   }, [scanner]);
 
   const startScanner = () => {
-    setIsScanning(true);
     setLastResult(null);
+    setIsScanning(true); // apenas altera o estado
+  };
+
+  // quando isScanning mudar para true, o DOM já terá renderizado o #qr-reader
+  useEffect(() => {
+    if (!isScanning) return;
 
     const html5QrcodeScanner = new Html5QrcodeScanner(
-      'qr-reader',
+      "qr-reader",
       { fps: 10, qrbox: { width: 250, height: 250 } },
       false
     );
 
     html5QrcodeScanner.render(onScanSuccess, onScanError);
     setScanner(html5QrcodeScanner);
-  };
+
+    return () => {
+      html5QrcodeScanner.clear();
+    };
+  }, [isScanning]);
+
 
   const stopScanner = () => {
     if (scanner) {
@@ -47,7 +57,7 @@ const Checkin = () => {
 
   const onScanSuccess = async (decodedText: string) => {
     console.log('QR Code detected:', decodedText);
-    
+
     if (scanner) {
       scanner.clear();
       setScanner(null);
@@ -57,7 +67,7 @@ const Checkin = () => {
     try {
       const ticketId = decodedText;
       await api.put(`/tickets/${ticketId}`, { check: true });
-      
+
       setLastResult({
         success: true,
         message: 'Check-in realizado com sucesso!',
@@ -126,11 +136,10 @@ const Checkin = () => {
             <CardContent>
               {lastResult ? (
                 <div
-                  className={`flex items-start gap-3 p-4 rounded-lg ${
-                    lastResult.success
+                  className={`flex items-start gap-3 p-4 rounded-lg ${lastResult.success
                       ? 'bg-success/10 text-success-foreground'
                       : 'bg-destructive/10 text-destructive-foreground'
-                  }`}
+                    }`}
                 >
                   {lastResult.success ? (
                     <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
