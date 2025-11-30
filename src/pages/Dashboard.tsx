@@ -16,7 +16,8 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         const response = await api.get('/events');
-        const events = response.data;
+        console.log(response.data)
+        const events = response.data.data;
         setStats({
           totalEvents: events.length || 0,
           totalTickets: 0,

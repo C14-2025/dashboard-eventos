@@ -44,19 +44,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/sessions', { email, password });
-      const { token: newToken } = response.data;
-      
+      const response = await api.post('/login', { email, password });
+      const { jwt_token: newToken } = response.data.data;
+
+
       localStorage.setItem('token', newToken);
       setToken(newToken);
-      
+
       const decoded: any = jwtDecode(newToken);
       setUser({
         id: decoded.sub || decoded.id,
         email: decoded.email,
         name: decoded.name,
       });
-      
+
       toast.success('Login realizado com sucesso!');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao fazer login');

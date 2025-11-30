@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import api from '@/api/axios';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 const eventSchema = z.object({
   title: z.string().min(3, 'Título deve ter no mínimo 3 caracteres'),
@@ -19,12 +20,17 @@ const eventSchema = z.object({
   time: z.string().min(1, 'Horário é obrigatório'),
   capacity: z.number().min(1, 'Capacidade deve ser maior que 0'),
   price: z.number().min(0, 'Preço não pode ser negativo'),
+  image: z.any().optional(),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
 
 const CreateEvent = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+
 
   const {
     register,
@@ -36,13 +42,32 @@ const CreateEvent = () => {
 
   const onSubmit = async (data: EventFormData) => {
     try {
-      await api.post('/events', data);
-      toast.success('Evento criado com sucesso!');
+      const formData = new FormData();
+
+      if (file) {
+        formData.append("files", file);
+        formData.append("folder_id", "cb02b354-43f5-41f2-ab60-21aa7ed1b6f8");
+
+        const response = await api.post(`/files`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          }
+        });
+
+        const file_id = response.data.data[0].id;
+
+        await api.post('/events', { ...data, file_id });
+      } else {
+        await api.post('/events', data);
+      }
+
+      toast.success("Evento criado com sucesso!");
       navigate('/events');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao criar evento');
+      toast.error(error.response?.data?.message || "Erro ao criar evento");
     }
   };
+
 
   return (
     <DashboardLayout>
@@ -141,6 +166,34 @@ const CreateEvent = () => {
                     <p className="text-sm text-destructive">{errors.price.message}</p>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="image">Imagem do Evento</Label>
+
+                <Input
+                  type="file"
+                  accept="image/*"
+                  {...register("image")}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setFile(f);
+                      setPreview(URL.createObjectURL(f));
+                    }
+                  }}
+                />
+
+
+                {preview && (
+                  <div className="mt-2">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="h-40 rounded-md border object-cover"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4">

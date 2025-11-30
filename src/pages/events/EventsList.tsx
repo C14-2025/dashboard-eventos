@@ -59,8 +59,9 @@ const EventsList = () => {
     setIsLoading(true);
     try {
       const response = await api.get('/events');
-      setEvents(response.data);
-      setFilteredEvents(response.data);
+
+      setEvents(response.data.data);
+      setFilteredEvents(response.data.data);
     } catch (error) {
       toast.error('Erro ao carregar eventos');
     } finally {

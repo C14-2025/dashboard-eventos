@@ -20,6 +20,7 @@ const eventSchema = z.object({
   time: z.string().min(1, 'Horário é obrigatório'),
   capacity: z.number().min(1, 'Capacidade deve ser maior que 0'),
   price: z.number().min(0, 'Preço não pode ser negativo'),
+  image: z.any().optional(),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -28,6 +29,9 @@ const EditEvent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [file, setFile] = useState<File | null>(null);
+
+  const [preview, setPreview] = useState<string | null>(null);
 
   const {
     register,
@@ -41,11 +45,15 @@ const EditEvent = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
+
         const response = await api.get(`/events/${id}`);
-        const event = response.data;
+        const event = response.data.data;
+        if (event?.file?.file_url) {
+          setPreview(event.file.file_url)
+        }
         reset({
           ...event,
-          date: event.date.split('T')[0], // Format date for input
+          date: event.date.split('T')[0],
         });
       } catch (error) {
         toast.error('Erro ao carregar evento');
@@ -62,7 +70,26 @@ const EditEvent = () => {
 
   const onSubmit = async (data: EventFormData) => {
     try {
+      const formData = new FormData();
+
+      if (file) {
+
+        formData.append("files", file);
+        formData.append("folder_id", 'cb02b354-43f5-41f2-ab60-21aa7ed1b6f8');
+
+        const response = await api.post(`/files`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          }
+        });
+
+
+        const file_id = response.data.data[0].id
+
+        await api.put(`/events/${id}`, { ...data, file_id });
+      }
       await api.put(`/events/${id}`, data);
+
       toast.success('Evento atualizado com sucesso!');
       navigate('/events');
     } catch (error: any) {
@@ -178,6 +205,35 @@ const EditEvent = () => {
                   )}
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="image">Imagem do Evento</Label>
+
+                <Input
+                  type="file"
+                  accept="image/*"
+                  {...register("image")}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setFile(f);
+                      setPreview(URL.createObjectURL(f));
+                    }
+                  }}
+                />
+
+
+                {preview && (
+                  <div className="mt-2">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="h-40 rounded-md border object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+
 
               <div className="flex gap-4">
                 <Button type="submit" disabled={isSubmitting}>
